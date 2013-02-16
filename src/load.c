@@ -13,7 +13,7 @@
 #endif
 #include "mruby/proc.h"
 #include "mruby/irep.h"
-#include "monitor.h"
+#include "debugger.h"
 
 typedef struct _RiteFILE
 {

@@ -6,7 +6,7 @@ MRuby::Gem::Specification.new('debug') do |spec|
   # spec.cc.flags << ''
 
   # Add cflags to all
-  # spec.mruby.cc.flags << ''
+  # spec.mruby.cc.defineds -= ''
 
   # Add libraries
   # spec.linker.libraries << 'external_lib'

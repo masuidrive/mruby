@@ -293,6 +293,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, h, mid);
   kh_value(h, k) = p;
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 void
@@ -322,6 +325,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   k = kh_put(mt, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 static mrb_value
@@ -1742,6 +1748,20 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
   return value;
 }
 
+mrb_value
+mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym sym;
+  mrb_value val;
+
+  mrb_get_args(mrb, "n", &sym);
+  check_const_name(mrb, sym);
+  val = mrb_iv_remove(mrb, mod, sym);
+  if (mrb_undef_p(val)) {
+    mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));
+  }
+  return val;
+}
 
 static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
@@ -1822,6 +1842,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
   mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));          /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "remove_const", mrb_mod_remove_const, ARGS_REQ(1));    /* 15.2.2.4.40 */
   mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
   mrb_define_method(mrb, mod, "class_variables", mrb_mod_class_variables, ARGS_NONE()); /* 15.2.2.4.19 */
 

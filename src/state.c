@@ -88,7 +88,7 @@ void mrb_free_heap(mrb_state *mrb);
 void
 mrb_close(mrb_state *mrb)
 {
-  int i;
+  size_t i;
 
   HOOK_MRB_CLOSE(mrb);
 

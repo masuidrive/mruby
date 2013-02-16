@@ -59,7 +59,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
-  int i;
+  size_t i;
 
   for (i = 0; i < size; i++) {
     dst[i] = src[i];
@@ -108,6 +108,9 @@ stack_extend(mrb_state *mrb, int room, int keep)
 
     size = mrb->stend - mrb->stbase;
     off = mrb->stack - mrb->stbase;
+
+    /* do not leave uninitialized malloc region */
+    if (keep > size) keep = size;
 
     /* Use linear stack growth.
        It is slightly slower than doubling thestack space,
@@ -555,6 +558,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   if (!mrb->stack) {
     stack_init(mrb);
   }
+  stack_extend(mrb, irep->nregs, irep->nregs);
   mrb->ci->proc = proc;
   mrb->ci->nregs = irep->nregs + 2;
   regs = mrb->stack;
@@ -1161,7 +1165,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       L_RAISE:
 	ci = mrb->ci;
 	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
-	mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
+	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
 	eidx = ci->eidx;
         if (ci == mrb->cibase) {
 	  if (ci->ridx == 0) goto L_STOP;
@@ -1237,6 +1241,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->stack = mrb->stbase + ci->stackidx;
+        {
+          int idx = eidx;
+          while (idx > mrb->ci->eidx) {
+            mrb_gc_protect(mrb, mrb_obj_value(mrb->ensure[--idx]));
+          }
+        }
         while (eidx > mrb->ci->eidx) {
           ecall(mrb, --eidx);
         }

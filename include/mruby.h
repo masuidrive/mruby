@@ -140,7 +140,7 @@ typedef struct mrb_state {
 
 #ifdef ENABLE_DEBUGGER
   void (*hook_mrb_read_irep)(struct mrb_state* mrb, int ret, const char *bin);
-  void (*hook_vm_fetch_code)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc);
+  void (*hook_vm_fetch_code)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
 #endif
 } mrb_state;
 

@@ -160,52 +160,43 @@ void dumpcode(struct mrb_state* mrb, mrb_irep *irep, mrb_code *pc) {
       printf("OP_LOADF\tR%d\n", GETARG_A(c));
       break;
     case OP_GETGLOBAL:
-    printf("OP_GETGLOBAL\n");
       printf("OP_GETGLOBAL\tR%d\t:%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETGLOBAL:
-    printf("OP_SETGLOBAL\n");
       printf("OP_SETGLOBAL\t:%s\tR%d\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETCONST:
-    printf("OP_GETCONST %p\n",irep->syms);
       printf("OP_GETCONST\tR%d\t:%d\n", GETARG_A(c),
              irep->syms[GETARG_Bx(c)]);
              //mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCONST:
-    printf("OP_SETCONST\n");
       printf("OP_SETCONST\t:%s\tR%d\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETMCNST:
-    printf("OP_GETMCNST\n");
       printf("OP_GETMCNST\tR%d\tR%d::%s\n", GETARG_A(c), GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETMCNST:
-    printf("OP_SETMCNST\n");
       printf("OP_SETMCNST\tR%d::%s\tR%d\n", GETARG_A(c)+1,
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETIV:
-    printf("OP_GETIV\n");
       printf("OP_GETIV\tR%d\t%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETIV:
-    printf("OP_SETIV\n");
       printf("OP_SETIV\t%s\tR%d\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETUPVAR:
-    printf("OP_GETUPVAR\n");
       printf("OP_GETUPVAR\tR%d\t%d\t%d\n",
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
@@ -215,12 +206,10 @@ void dumpcode(struct mrb_state* mrb, mrb_irep *irep, mrb_code *pc) {
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_GETCV:
-    printf("OP_GETCV\n");
       printf("OP_GETCV\tR%d\t%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCV:
-    printf("OP_SETCV\n");
       printf("OP_SETCV\t%s\tR%d\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
@@ -446,8 +435,8 @@ void dumpcode(struct mrb_state* mrb, mrb_irep *irep, mrb_code *pc) {
 
 
 static 
-void hook_vm_fetch_code(struct mrb_state* mrb, mrb_irep *irep, mrb_code *pc) {
-  printf("pc[%p] = ", pc);
+void hook_vm_fetch_code(struct mrb_state* mrb, mrb_irep *irep, mrb_code *pc, mrb_value *regs) {
+  printf("%p: ", pc);
   dumpcode(mrb, irep, pc);
 }
 

@@ -520,7 +520,6 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   rite_binary_header  bin_header;
 
   if ((mrb == NULL) || (bin == NULL)) {
-    HOOK_MRB_READ_IREP(mrb, MRB_DUMP_INVALID_ARGUMENT, bin);
     return MRB_DUMP_INVALID_ARGUMENT;
   }
   src = (unsigned char*)bin;
@@ -529,7 +528,6 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   //Read File Header Section
   nirep = read_rite_header(mrb, src, &bin_header);
   if (nirep < 0) {
-    HOOK_MRB_READ_IREP(mrb, nirep, bin);
     return nirep;
   }
   
@@ -564,12 +562,10 @@ error_exit:
       }
     }
     //    mrb->irep_len = sirep;
-    HOOK_MRB_READ_IREP(mrb, ret, bin);
     return ret;
   }
 
   ret = sirep + hex_to_uint8(bin_header.sirep);
-  HOOK_MRB_READ_IREP(mrb, ret, bin);
   return ret;
 }
 

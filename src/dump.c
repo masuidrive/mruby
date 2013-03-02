@@ -303,7 +303,7 @@ write_rite_header(mrb_state *mrb, unsigned char* bin, uint32_t binary_size)
   uint16_dump(crc, bin, type);
 */
   struct rite_binary_header header;
-  
+
   memcpy(header.binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header.binary_identify));
   memcpy(header.binary_version, RITE_BINARY_FORMAT_VER, sizeof(header.binary_version));
   uint32_to_bin(binary_size, header.binary_size);
@@ -385,7 +385,8 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f, const char *initname)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  buf_size = sizeof(struct rite_binary_header);
+  buf_size += sizeof(struct rite_binary_header);
+  buf_size += sizeof(struct rite_section_irep_header);
   for (irep_no = n; irep_no < mrb->irep_len; irep_no++) {
     buf_size += get_irep_record_size(mrb, irep_no);
   }

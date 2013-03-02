@@ -94,7 +94,7 @@ struct rite_binary_header {
   unsigned char section_identify[4]; \
   unsigned char section_size[4];
 
-struct rite_irep_section_header {
+struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   unsigned char rite_version[4];  // Rite Instruction Specification Version

@@ -261,12 +261,6 @@ irep_error(mrb_state *mrb, const char *msg)
 }
 
 mrb_value
-mrb_load_irep_file(mrb_state *mrb, FILE* fp)
-{
-  return mrb_nil_value();
-}
-
-mrb_value
 mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 {
   int result, n;
@@ -279,3 +273,13 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
   }
   return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 }
+
+#ifdef ENABLE_STDIO
+
+int
+mrb_read_irep_file(mrb_state *mrb, FILE* fp)
+{
+  return 0; // TODO
+}
+
+#endif /* ENABLE_STDIO */

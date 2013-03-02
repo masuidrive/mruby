@@ -18,12 +18,11 @@ extern "C" {
 #include <stdint.h>
 
 #ifdef ENABLE_STDIO
-int mrb_dump_irep(mrb_state*,int,FILE*);
-int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
-
-int mrb_read_irep_file(mrb_state*,FILE*);
+int mrb_dump_irep_binary(mrb_state*, int, FILE*);
+int mrb_dump_irep_cfunc(mrb_state *mrb, int n, FILE *f, const char *initname);
+int mrb_read_irep_file(mrb_state*, FILE*);
 #endif
-int mrb_read_irep(mrb_state*,const unsigned char*);
+int mrb_read_irep(mrb_state*, const unsigned char*);
 
 #ifdef ENABLE_STDIO
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
@@ -76,8 +75,8 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
-#define RITE_SECTION_IREP_LITTLE_ENDIAN "L"
-#define RITE_SECTION_IREP_BIG_ENDIAN  "B"
+#define RITE_SECTION_IREP_LITTLE_ENDIAN 'L'
+#define RITE_SECTION_IREP_BIG_ENDIAN  'B'
 
 
 /* irep header */
@@ -107,7 +106,7 @@ struct rite_section_irep_header {
   unsigned char rite_version[4];    // Rite Instruction Specification Version
   unsigned char compiler_name[4];   // Rite Compiler name
   unsigned char compiler_version[4];
-  unsigned char endianness[1];      // 
+  unsigned char endianness;         // 
   unsigned char nirep[2];           // Number of ireps
   unsigned char sirep[2];           // Start index  
 };

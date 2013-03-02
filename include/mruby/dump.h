@@ -74,7 +74,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #define RITE_COMPILER_NAME            "MATZ"
 #define RITE_COMPILER_VERSION         "0000"
 
-#define RITE_BINARY_EOF               "END "
+#define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
 
 

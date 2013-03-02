@@ -74,9 +74,8 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
   mrb_value str;
   char buf[32];
 
-  size += sizeof(uint32_t); ; /* plen */
-  size += irep->plen; /* tt(n) */
-  size += irep->plen * sizeof(uint32_t); /* len(n) */
+  size += sizeof(uint32_t); /* plen */
+  size += irep->plen * (sizeof(uint8_t) + sizeof(uint16_t)); /* len(n) */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int len;
@@ -155,12 +154,11 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, unsigned char *buf)
       break;
 
     default:
-      buf += uint16_to_bin(0, buf); /* data length = 0 */
+      len = 0;
       continue;
     }
 
     buf += uint16_to_bin(len, buf); /* data length */
-
     memcpy(buf, char_buf, len);
     buf += len;
   }
@@ -246,7 +244,7 @@ get_irep_record_size(mrb_state *mrb, mrb_irep *irep)
 {
   uint32_t size = 0;
 
-  size += sizeof(uint16_t); /* rlen */
+  //size += sizeof(uint16_t); /* rlen */
   size += get_irep_header_size(mrb);
   size += get_iseq_block_size(mrb, irep);
   size += get_pool_block_size(mrb, irep);
@@ -268,7 +266,7 @@ write_irep_record(mrb_state *mrb, mrb_irep *irep, unsigned char* bin, uint32_t *
 
   memset(bin, 0, *irep_record_size);
 
-  bin += uint32_to_bin(*irep_record_size, bin);
+  //bin += uint16_to_bin(*irep_record_size, bin);
   bin += write_irep_header(mrb, irep, bin);
   bin += write_iseq_block(mrb, irep, bin);
   bin += write_pool_block(mrb, irep, bin);
@@ -291,15 +289,17 @@ mrb_write_eof(mrb_state *mrb, unsigned char *bin)
 
 
 static int
-mrb_write_section_irep_header(mrb_state *mrb, uint16_t nirep, uint16_t sirep, unsigned char *bin)
+mrb_write_section_irep_header(mrb_state *mrb, uint32_t section_size, uint16_t nirep, uint16_t sirep, unsigned char *bin)
 { 
-  struct rite_section_irep_header header;
+  struct rite_section_irep_header *header = (struct rite_section_irep_header*)bin;
 
-  memcpy(header.rite_version, RITE_VM_VER, sizeof(header.rite_version));
-  memcpy(header.compiler_name, RITE_COMPILER_NAME, sizeof(header.compiler_name));
-  memcpy(header.compiler_version, RITE_COMPILER_VERSION, sizeof(header.compiler_version));
-  uint16_to_bin(nirep, header.nirep);
-  uint16_to_bin(sirep, header.sirep);
+  memcpy(header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(header->section_identify));
+  uint32_to_bin(section_size, header->section_size);
+  memcpy(header->rite_version, RITE_VM_VER, sizeof(header->rite_version));
+  memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
+  memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
+  uint16_to_bin(nirep, header->nirep);
+  uint16_to_bin(sirep, header->sirep);
 
   return MRB_DUMP_OK;
 }
@@ -308,7 +308,7 @@ static int
 mrb_write_section_irep(mrb_state *mrb, int start_index, unsigned char *bin)
 {
   int result;
-  uint32_t rlen = 0; /* size of irep record */
+  uint32_t section_size = 0, rlen = 0; /* size of irep record */
   int irep_no;
   unsigned char *bin_cur = bin;
 
@@ -317,6 +317,7 @@ mrb_write_section_irep(mrb_state *mrb, int start_index, unsigned char *bin)
   }
 
   bin_cur += sizeof(struct rite_section_irep_header);
+  section_size += sizeof(struct rite_section_irep_header);
 
   for (irep_no = start_index; irep_no < mrb->irep_len; irep_no++) {
     result = write_irep_record(mrb, mrb->irep[irep_no], bin_cur, &rlen);
@@ -324,9 +325,10 @@ mrb_write_section_irep(mrb_state *mrb, int start_index, unsigned char *bin)
       return result;
     }
     bin_cur += rlen;
+    section_size += rlen;
   }
 
-  mrb_write_section_irep_header(mrb, mrb->irep_len - start_index, start_index, bin);
+  mrb_write_section_irep_header(mrb, section_size, mrb->irep_len - start_index, start_index, bin);
 
   return MRB_DUMP_OK;
 }
@@ -343,11 +345,11 @@ write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, unsigned char* bi
   bin += sizeof(*binary_header);
   uint16_dump(crc, bin, type);
 */
-  struct rite_binary_header header;
+  struct rite_binary_header *header = (struct rite_binary_header*)bin;
 
-  memcpy(header.binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header.binary_identify));
-  memcpy(header.binary_version, RITE_BINARY_FORMAT_VER, sizeof(header.binary_version));
-  uint32_to_bin(binary_size, header.binary_size);
+  memcpy(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify));
+  memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
+  uint32_to_bin(binary_size, header->binary_size);
   // TODO: CRC
 
   return MRB_DUMP_OK;
@@ -422,7 +424,7 @@ mrb_bdump_irep(mrb_state *mrb, int start_index, FILE *f, const char *initname)
   }
 
   bin_cur += section_irep_size;
-  mrb_write_eof(mrb, bin);
+  mrb_write_eof(mrb, bin_cur);
 
   result = write_rite_binary_header(mrb, bin_size, bin);
   if (result == MRB_DUMP_OK) {

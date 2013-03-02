@@ -182,7 +182,6 @@ read_rite_section_irep(mrb_state *mrb, const unsigned char *bin)
 
 error_exit:
   if (result != MRB_DUMP_OK) {
-    puts("SEC ERR");
     for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
@@ -236,7 +235,6 @@ mrb_read_irep(mrb_state *mrb, const unsigned char *bin)
 
   result = read_rite_binary_header(bin, &bin_size);
   if(result != MRB_DUMP_OK) {
-    puts("format err");
     return result;
   }
   bin += sizeof(struct rite_binary_header);

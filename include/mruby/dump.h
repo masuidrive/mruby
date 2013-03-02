@@ -23,7 +23,7 @@ int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 
 int mrb_read_irep_file(mrb_state*,FILE*);
 #endif
-int mrb_read_irep(mrb_state*,const char*);
+int mrb_read_irep(mrb_state*,const unsigned char*);
 
 #ifdef ENABLE_STDIO
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
@@ -39,47 +39,48 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
  * NOTE: MRB_DUMP_GENERAL_FAILURE is caused by
  * unspecified issues like malloc failed.
  */
-#define MRB_DUMP_OK                     0
-#define MRB_DUMP_GENERAL_FAILURE        -1
-#define MRB_DUMP_WRITE_FAULT            -2
-#define MRB_DUMP_READ_FAULT             -3
-#define MRB_DUMP_CRC_ERROR              -4
-#define MRB_DUMP_INVALID_FILE_HEADER    -5
-#define MRB_DUMP_INVALID_IREP           -6
-#define MRB_DUMP_INVALID_ARGUMENT       -7
+#define MRB_DUMP_OK                   0
+#define MRB_DUMP_GENERAL_FAILURE      -1
+#define MRB_DUMP_WRITE_FAULT          -2
+#define MRB_DUMP_READ_FAULT           -3
+#define MRB_DUMP_CRC_ERROR            -4
+#define MRB_DUMP_INVALID_FILE_HEADER  -5
+#define MRB_DUMP_INVALID_IREP         -6
+#define MRB_DUMP_INVALID_ARGUMENT     -7
 
 /* size of long/int/short value on dump/load */
-#define MRB_DUMP_SIZE_OF_LONG          4
-#define MRB_DUMP_SIZE_OF_INT           4
-#define MRB_DUMP_SIZE_OF_SHORT         2
-#define MRB_DUMP_SIZE_OF_CHAR          1
+#define MRB_DUMP_SIZE_OF_LONG         4
+#define MRB_DUMP_SIZE_OF_INT          4
+#define MRB_DUMP_SIZE_OF_SHORT        2
+#define MRB_DUMP_SIZE_OF_CHAR         1
 
 /* null symbol length */
-#define MRB_DUMP_NULL_SYM_LEN          0xFFFF
+#define MRB_DUMP_NULL_SYM_LEN         0xFFFF
 
 /* Use HEX format string */
 #define RITE_FILE_IS_HEX
 
 #ifdef RITE_FILE_IS_HEX
-#define RITE_FILE_HEX_SIZE             2
+#define RITE_FILE_HEX_SIZE            2
 #else
-#define RITE_FILE_HEX_SIZE             1
+#define RITE_FILE_HEX_SIZE            1
 #endif
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENFIFIER        "RITE"
 #define RITE_BINARY_FORMAT_VER        "0000"
-#define RITE_VM_VER                   "00"
+
+#define RITE_VM_VER                   "0000"
+#define RITE_COMPILER_NAME            "MATZ"
+#define RITE_COMPILER_VERSION         "0000"
 
 #define RITE_BINARY_EOF               "END "
+#define RITE_SECTION_IREP_IDENTIFIER  "IREP"
 
 
 /* irep header */
-#define RITE_IREP_IDENFIFIER           'S'
-#define RITE_IREP_TYPE_CLASS           'C'
-#define RITE_IREP_TYPE_MODULE          'M'
-
-#define MRB_DUMP_DEFAULT_STR_LEN       128
+#define RITE_IREP_IDENTIFIER          'S'
+#define MRB_DUMP_DEFAULT_STR_LEN      128
 
 // Rite binary header
 struct rite_binary_header {
@@ -94,11 +95,15 @@ struct rite_binary_header {
   unsigned char section_identify[4]; \
   unsigned char section_size[4];
 
+struct rite_section_header {
+  RITE_SECTION_HEADER;
+};
+
 struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   unsigned char rite_version[4];  // Rite Instruction Specification Version
-  unsigned char compiler_type[4]; // Rite Compiler Type
+  unsigned char compiler_name[4]; // Rite Compiler name
   unsigned char compiler_version[4];
   unsigned char nirep[2];         // Number of ireps
   unsigned char sirep[2];         // Start index  

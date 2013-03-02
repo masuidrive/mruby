@@ -30,7 +30,7 @@ write_irep_header(mrb_state *mrb, mrb_irep *irep, unsigned char *buf)
 {
   unsigned char *buf_top = buf;
 
-  *buf++ = RITE_IREP_IDENFIFIER; /* record identifier */
+  *buf++ = RITE_IREP_IDENTIFIER; /* record identifier */
   buf += uint16_to_bin((uint16_t)irep->nlocals, buf);  /* number of local variable */
   buf += uint16_to_bin((uint16_t)irep->nregs, buf);  /* number of register variable */
   buf += uint16_to_bin(0, buf); /* offset of isec block */
@@ -291,29 +291,44 @@ mrb_write_eof(mrb_state *mrb, unsigned char *bin)
 
 
 static int
+mrb_write_section_irep_header(mrb_state *mrb, uint16_t nirep, uint16_t sirep, unsigned char *bin)
+{ 
+  struct rite_section_irep_header header;
+
+  memcpy(header.rite_version, RITE_VM_VER, sizeof(header.rite_version));
+  memcpy(header.compiler_name, RITE_COMPILER_NAME, sizeof(header.compiler_name));
+  memcpy(header.compiler_version, RITE_COMPILER_VERSION, sizeof(header.compiler_version));
+  uint16_to_bin(nirep, header.nirep);
+  uint16_to_bin(sirep, header.sirep);
+
+  return MRB_DUMP_OK;
+}
+
+static int
 mrb_write_section_irep(mrb_state *mrb, int start_index, unsigned char *bin)
 {
-  int rc;
+  int result;
   uint32_t rlen = 0; /* size of irep record */
   int irep_no;
-  unsigned char *bin_top;
+  unsigned char *bin_cur = bin;
 
   if (mrb == NULL || start_index < 0 || start_index >= mrb->irep_len || bin == NULL) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  bin_top = bin;
-  bin += sizeof(struct rite_binary_header);
+  bin_cur += sizeof(struct rite_section_irep_header);
 
   for (irep_no = start_index; irep_no < mrb->irep_len; irep_no++) {
-    rc = write_irep_record(mrb, mrb->irep[irep_no], bin, &rlen);
-    if (rc != MRB_DUMP_OK) {
-      return rc;
+    result = write_irep_record(mrb, mrb->irep[irep_no], bin_cur, &rlen);
+    if (result != MRB_DUMP_OK) {
+      return result;
     }
-    bin += rlen;
+    bin_cur += rlen;
   }
 
-  return rc;
+  mrb_write_section_irep_header(mrb, mrb->irep_len - start_index, start_index, bin);
+
+  return MRB_DUMP_OK;
 }
 
 static int
@@ -402,7 +417,7 @@ mrb_bdump_irep(mrb_state *mrb, int start_index, FILE *f, const char *initname)
   bin_cur += sizeof(struct rite_binary_header);
 
   result = mrb_write_section_irep(mrb, start_index, bin_cur);
-  if (result == MRB_DUMP_OK) {
+  if (result != MRB_DUMP_OK) {
     goto error_exit;
   }
 
@@ -411,7 +426,7 @@ mrb_bdump_irep(mrb_state *mrb, int start_index, FILE *f, const char *initname)
 
   result = write_rite_binary_header(mrb, bin_size, bin);
   if (result == MRB_DUMP_OK) {
-    fprintf(f, "const char %s[] = {", initname);
+    fprintf(f, "const unsigned char %s[] = {", initname);
     while (bin_idx < bin_size) {
       if (bin_idx % 16 == 0 ) fputs("\n", f);
       fprintf(f, "0x%02x,", (unsigned char)bin[bin_idx++]);

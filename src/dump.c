@@ -298,6 +298,7 @@ mrb_write_section_irep_header(mrb_state *mrb, uint32_t section_size, uint16_t ni
   memcpy(header->rite_version, RITE_VM_VER, sizeof(header->rite_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
+  uint8_to_bin(RITE_SECTION_IREP_BIG_ENDIAN, header->endianness);
   uint16_to_bin(nirep, header->nirep);
   uint16_to_bin(sirep, header->sirep);
 

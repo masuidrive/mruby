@@ -76,6 +76,8 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
+#define RITE_SECTION_IREP_LITTLE_ENDIAN "L"
+#define RITE_SECTION_IREP_BIG_ENDIAN  "B"
 
 
 /* irep header */
@@ -102,11 +104,12 @@ struct rite_section_header {
 struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
-  unsigned char rite_version[4];  // Rite Instruction Specification Version
-  unsigned char compiler_name[4]; // Rite Compiler name
+  unsigned char rite_version[4];    // Rite Instruction Specification Version
+  unsigned char compiler_name[4];   // Rite Compiler name
   unsigned char compiler_version[4];
-  unsigned char nirep[2];         // Number of ireps
-  unsigned char sirep[2];         // Start index  
+  unsigned char endianness[1];      // 
+  unsigned char nirep[2];           // Number of ireps
+  unsigned char sirep[2];           // Start index  
 };
 
 struct rite_binary_footer {

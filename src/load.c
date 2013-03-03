@@ -12,11 +12,11 @@
 #include "mruby/irep.h"
 
 static int
-read_rite_irep_record(mrb_state *mrb, unsigned char *bin, uint32_t *len)
+read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
 {
   int i, ret = MRB_DUMP_OK;
   char *buf;
-  unsigned char *src = bin;
+  const unsigned char *src = bin;
   uint16_t crc, tt, pool_data_len, snl, offset, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
@@ -34,21 +34,24 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *bin, uint32_t *len)
   if (*src++ != RITE_IREP_IDENTIFIER)
     return MRB_DUMP_INVALID_IREP;
 
-  //number of local variable
+  // skip record size
+  src += sizeof(uint32_t);
+
+  // number of local variable
   irep->nlocals = bin_to_uint16(src);
   src += sizeof(uint16_t);
 
-  //number of register variable
+  // number of register variable
   irep->nregs = bin_to_uint16(src);         
   src += sizeof(uint16_t);
 
-  //offset of isec block
+  // offset of isec block
   offset = bin_to_uint16(src);
   src += sizeof(uint16_t);
   src += offset;
 
-  //Binary Data Section
-  //ISEQ BLOCK
+  // Binary Data Section
+  // ISEQ BLOCK
   irep->ilen = bin_to_uint32(src);
   src += sizeof(uint32_t);
   if (irep->ilen > 0) {
@@ -114,7 +117,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *bin, uint32_t *len)
   }
 
   //SYMS BLOCK
-const unsigned char* _s = src;
   irep->slen = bin_to_uint32(src);  //syms length
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
@@ -163,10 +165,12 @@ static int
 read_rite_section_irep(mrb_state *mrb, const unsigned char *bin)
 {
   int n, i, result = MRB_DUMP_OK;
-  size_t sirep;
+  uint32_t len, sirep;
   uint16_t nirep;
-  uint32_t len;
-  const struct rite_section_irep_header *header = bin;
+
+  const struct rite_section_irep_header *header;
+
+  header = (const struct rite_section_irep_header*)bin;
   bin += sizeof(struct rite_section_irep_header);
 
   sirep = mrb->irep_len;
@@ -202,7 +206,7 @@ error_exit:
 }
 
 static int
-read_rite_binary_header(const char *bin, uint32_t *bin_size)
+read_rite_binary_header(const unsigned char *bin, uint32_t *bin_size)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
@@ -223,11 +227,9 @@ read_rite_binary_header(const char *bin, uint32_t *bin_size)
 int
 mrb_read_irep(mrb_state *mrb, const unsigned char *bin)
 {
-  int i, n, nirep, sirep, total_nirep = 0, result = MRB_DUMP_OK;
-  uint32_t len = 0;
-  unsigned char *src;
+  int total_nirep = 0, result = MRB_DUMP_OK;
   const struct rite_section_header *section_header;
-  uint32_t bin_size = 0, section_size = 0;
+  uint32_t bin_size = 0;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
@@ -240,7 +242,7 @@ mrb_read_irep(mrb_state *mrb, const unsigned char *bin)
   bin += sizeof(struct rite_binary_header);
 
   do {
-    section_header = bin;
+    section_header = (const struct rite_section_header *)bin;
     if(memcmp(section_header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       result = read_rite_section_irep(mrb, bin);
       if(result < MRB_DUMP_OK) {
@@ -263,8 +265,7 @@ irep_error(mrb_state *mrb, const char *msg)
 mrb_value
 mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 {
-  int result, n;
-  uint32_t bin_size;
+  int n;
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
@@ -276,13 +277,66 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 
 #ifdef ENABLE_STDIO
 
+
+static int
+read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
+{
+  int n, i, result = MRB_DUMP_OK;
+  uint16_t sirep, nirep;
+  uint32_t len, buf_size;
+  unsigned char *buf = NULL;
+  const int record_header_size = 1 + 4;
+
+  struct rite_section_irep_header header;
+  fread(&header, sizeof(struct rite_section_irep_header), 1, fp);
+
+  sirep = mrb->irep_len;
+  nirep = bin_to_uint16(header.nirep);
+
+  buf_size = record_header_size;
+  buf = mrb_malloc(mrb, buf_size);
+  
+  //Read Binary Data Section
+  for (n = 0, i = sirep; n < nirep; n++, i++) {
+    fread(buf, record_header_size, 1, fp);
+    if(buf[0] == RITE_IREP_IDENTIFIER) {
+      buf_size = bin_to_uint32(&buf[1]);
+      buf = mrb_realloc(mrb, buf, buf_size);
+      fread(&buf[record_header_size], buf_size - record_header_size, 1, fp);
+    }
+    result = read_rite_irep_record(mrb, buf, &len);
+    if (result != MRB_DUMP_OK)
+      goto error_exit;
+  }
+
+error_exit:
+  mrb_free(mrb, buf);
+  if (result != MRB_DUMP_OK) {
+    for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
+      if (mrb->irep[i]) {
+        if (mrb->irep[i]->iseq)
+          mrb_free(mrb, mrb->irep[i]->iseq);
+
+        if (mrb->irep[i]->pool)
+          mrb_free(mrb, mrb->irep[i]->pool);
+
+        if (mrb->irep[i]->syms)
+          mrb_free(mrb, mrb->irep[i]->syms);
+
+        mrb_free(mrb, mrb->irep[i]);
+      }
+    }
+    return result;
+  }
+  return sirep + bin_to_uint16(header.sirep);
+}
+
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int i, n, nirep, sirep, total_nirep = 0, result = MRB_DUMP_OK;
-  uint32_t len = 0;
-  unsigned char *src, *buf;
-  uint32_t bin_size = 0, buf_size, section_size = 0;
+  int total_nirep = 0, result = MRB_DUMP_OK;
+  unsigned char *buf;
+  uint32_t bin_size = 0, buf_size = 0, section_size = 0;
   struct rite_section_header section_header;
   long fpos;
 
@@ -304,14 +358,8 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     section_size = bin_to_uint32(section_header.section_size);
 
     if(memcmp(section_header.section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      buf_size = section_size - sizeof(struct rite_section_header);
-
-      buf_size = section_header.section_size;
-      buf = mrb_realloc(mrb, buf, buf_size);
       fseek(fp, fpos, SEEK_SET);
-      fread(buf, buf_size, 1, fp);
-
-      result = read_rite_section_irep(mrb, buf);
+      result = read_rite_section_irep_file(mrb, fp);
       if(result < MRB_DUMP_OK) {
         return result;
       }

@@ -12,6 +12,10 @@
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
 
+
+static uint32_t
+get_irep_record_size(mrb_state *mrb, mrb_irep *irep);
+
 #ifdef ENABLE_STDIO
 
 static uint32_t
@@ -19,8 +23,9 @@ get_irep_header_size(mrb_state *mrb)
 {
   uint32_t size = 0;
 
-  size += 1;
-  size += sizeof(uint16_t) * 3; // TODO
+  size += 1; // identifier
+  size += sizeof(uint32_t) * 1;
+  size += sizeof(uint16_t) * 3;
 
   return size;
 }
@@ -31,6 +36,7 @@ write_irep_header(mrb_state *mrb, mrb_irep *irep, unsigned char *buf)
   unsigned char *buf_top = buf;
 
   *buf++ = RITE_IREP_IDENTIFIER; /* record identifier */
+  buf += uint32_to_bin(get_irep_record_size(mrb, irep), buf);  /* number of register variable */
   buf += uint16_to_bin((uint16_t)irep->nlocals, buf);  /* number of local variable */
   buf += uint16_to_bin((uint16_t)irep->nregs, buf);  /* number of register variable */
   buf += uint16_to_bin(0, buf); /* offset of isec block */

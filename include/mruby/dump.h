@@ -141,7 +141,7 @@ uint32_to_bin(uint32_t l, unsigned char *bin)
 }
 
 static inline uint32_t
-bin_to_uint32(unsigned char bin[])
+bin_to_uint32(const unsigned char *bin)
 {
   return (uint32_t)bin[0] << 24 |
          (uint32_t)bin[1] << 16 |
@@ -150,14 +150,14 @@ bin_to_uint32(unsigned char bin[])
 }
 
 static inline uint16_t
-bin_to_uint16(unsigned char bin[])
+bin_to_uint16(const unsigned char *bin)
 {
   return (uint16_t)bin[0] << 8 |
          (uint16_t)bin[1];
 }
 
 static inline uint8_t
-bin_to_uint8(unsigned char bin[])
+bin_to_uint8(const unsigned char *bin)
 {
   return (uint8_t)bin[0];
 }

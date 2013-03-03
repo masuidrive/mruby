@@ -289,6 +289,7 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
+printf("ret=%d\n", n);
     irep_error(mrb, "irep load error");
     return mrb_nil_value();
   }

@@ -115,6 +115,19 @@ struct rite_binary_footer {
   RITE_SECTION_HEADER;
 };
 
+struct binop {
+  unsigned char endianness;
+  size_t uint8_size;
+  size_t uint16_size;
+  size_t uint32_size;
+  int (*uint8_to_bin)(uint8_t s, unsigned char *bin);
+  int (*uint16_to_bin)(uint16_t s, unsigned char *bin);
+  int (*uint32_to_bin)(uint32_t s, unsigned char *bin);
+  uint8_t (*bin_to_uint8)(const unsigned char *bin);
+  uint16_t (*bin_to_uint16)(const unsigned char *bin);
+  uint32_t (*bin_to_uint32)(const unsigned char *bin);
+};
+
 static inline int
 uint8_to_bin(uint8_t s, unsigned char *bin)
 {

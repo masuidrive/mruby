@@ -279,7 +279,50 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  return 0; // TODO
+  int i, n, nirep, sirep, total_nirep = 0, result = MRB_DUMP_OK;
+  uint32_t len = 0;
+  unsigned char *src, *buf;
+  uint32_t bin_size = 0, buf_size, section_size = 0;
+  struct rite_section_header section_header;
+  long fpos;
+
+  if ((mrb == NULL) || (fp == NULL)) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  buf_size = sizeof(struct rite_binary_header);
+  buf = mrb_malloc(mrb, buf_size);
+  fread(buf, sizeof(struct rite_binary_header), 1, fp);
+  result = read_rite_binary_header(buf, &bin_size);
+  if(result != MRB_DUMP_OK) {
+    return result;
+  }
+
+  do {
+    fpos = ftell(fp);
+    fread(&section_header, sizeof(struct rite_section_header), 1, fp);
+    section_size = bin_to_uint32(section_header.section_size);
+
+    if(memcmp(section_header.section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
+      buf_size = section_size - sizeof(struct rite_section_header);
+
+      buf_size = section_header.section_size;
+      buf = mrb_realloc(mrb, buf, buf_size);
+      fseek(fp, fpos, SEEK_SET);
+      fread(buf, buf_size, 1, fp);
+
+      result = read_rite_section_irep(mrb, buf);
+      if(result < MRB_DUMP_OK) {
+        return result;
+      }
+      total_nirep += result;
+    }
+
+    fseek(fp, fpos + section_size, SEEK_SET);
+  } while(memcmp(section_header.section_identify, RITE_BINARY_EOF, sizeof(section_header.section_identify)) != 0);
+
+  mrb_free(mrb, buf);
+  return total_nirep;
 }
 
 #endif /* ENABLE_STDIO */

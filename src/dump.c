@@ -393,33 +393,21 @@ error_exit:
 int
 mrb_dump_irep_binary(mrb_state *mrb, int start_index, FILE* fp)
 {
-  int rc;
-  uint32_t rbds=0; /* size of Rite Binary Data */
-  uint32_t rlen=0; /* size of irep record */
-  int irep_no;
-/*
-  if (mrb == NULL || top < 0 || top >= mrb->irep_len || fp == NULL)
+  unsigned char *bin = NULL;
+  uint32_t bin_size = 0;
+  int result;
+
+  if (fp == NULL) {
     return MRB_DUMP_INVALID_ARGUMENT;
-
-  if (fwrite(&def_rite_file_header, sizeof(size rite_file_header), 1, fp) != 1) // dummy write
-    return MRB_DUMP_WRITE_FAULT;
-
-  for (irep_no=top; irep_no<mrb->irep_len; irep_no++) {
-    rc = dump_irep_record(mrb, irep_no, fp, &rlen);
-    if (rc != MRB_DUMP_OK)
-      return rc;
-
-    rbds += rlen;
   }
 
-  if (fwrite("00000000", 8, 1, fp) != 1)
-    return MRB_DUMP_WRITE_FAULT;
+  result = mrb_dump_irep(mrb, start_index, &bin, &bin_size);
+  if (result == MRB_DUMP_OK) {
+    fwrite(bin, bin_size, 1, fp);
+  }
 
-  rc = dump_rite_header(mrb, top, fp, rbds);    //TODO: Remove top(SIREP)
-
-  return rc;
-  */
-  return 0;
+  mrb_free(mrb, bin);
+  return result;
 }
 
 int

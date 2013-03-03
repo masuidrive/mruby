@@ -16,6 +16,9 @@
 static uint32_t
 get_irep_record_size(mrb_state *mrb, mrb_irep *irep);
 
+uint16_t
+calc_crc_16_ccitt(const unsigned char*, uint32_t);
+
 #ifdef ENABLE_STDIO
 
 static uint32_t
@@ -344,11 +347,16 @@ static int
 write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, unsigned char* bin)
 { 
   struct rite_binary_header *header = (struct rite_binary_header*)bin;
+  uint16_t crc;
+  size_t n;
 
   memcpy(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify));
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
   uint32_to_bin(binary_size, header->binary_size);
-  // TODO: CRC
+  n = (&(header->binary_crc[0]) - bin) + sizeof(uint16_t);
+
+  crc = calc_crc_16_ccitt(bin + n, binary_size - n);
+  uint16_to_bin(crc, header->binary_crc);
 
   return MRB_DUMP_OK;
 }

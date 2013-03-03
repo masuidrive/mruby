@@ -11,13 +11,25 @@
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
+uint16_t calc_crc_16_ccitt(const unsigned char*, uint32_t);
+uint32_t calc_crc_16_ccitt_block(const unsigned char *src, uint32_t nbytes, uint32_t crcwk);
+uint16_t calc_crc_16_ccitt_finish(uint32_t crcwk);
+
+static size_t
+offset_crc_body()
+{
+  struct rite_binary_header header;
+  return ((void*)header.binary_crc - (void*)&header) + sizeof(header.binary_crc);
+}
+
+
 static int
 read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
 {
   int i, ret = MRB_DUMP_OK;
   char *buf;
   const unsigned char *src = bin;
-  uint16_t crc, tt, pool_data_len, snl, offset, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
+  uint16_t tt, pool_data_len, snl, offset, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
   int plen;
@@ -206,9 +218,10 @@ error_exit:
 }
 
 static int
-read_rite_binary_header(const unsigned char *bin, uint32_t *bin_size)
+read_rite_binary_header(const unsigned char *bin, uint32_t *bin_size, uint16_t *crc)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
+  size_t n;
 
   if(memcmp(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
@@ -218,9 +231,9 @@ read_rite_binary_header(const unsigned char *bin, uint32_t *bin_size)
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
+  *crc = bin_to_uint16(header->binary_crc);
   *bin_size = bin_to_uint32(header->binary_size);
 
-  // TODO: check crc
   return MRB_DUMP_OK;
 }
 
@@ -229,16 +242,23 @@ mrb_read_irep(mrb_state *mrb, const unsigned char *bin)
 {
   int total_nirep = 0, result = MRB_DUMP_OK;
   const struct rite_section_header *section_header;
-  uint32_t bin_size = 0;
+  uint16_t crc;
+  uint32_t bin_size = 0, n;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = read_rite_binary_header(bin, &bin_size);
+  result = read_rite_binary_header(bin, &bin_size, &crc);
   if(result != MRB_DUMP_OK) {
     return result;
   }
+
+  n = offset_crc_body();
+  if(crc != calc_crc_16_ccitt(bin + n, bin_size - n)) {
+    return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+
   bin += sizeof(struct rite_binary_header);
 
   do {
@@ -336,9 +356,12 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   int total_nirep = 0, result = MRB_DUMP_OK;
   unsigned char *buf;
-  uint32_t bin_size = 0, buf_size = 0, section_size = 0;
+  uint16_t crc;
+  uint32_t bin_size = 0, buf_size = 0, section_size = 0, crcwk = 0;
+  size_t nbytes;
   struct rite_section_header section_header;
   long fpos;
+  const size_t block_size = 1 << 14;
 
   if ((mrb == NULL) || (fp == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
@@ -347,11 +370,26 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   buf_size = sizeof(struct rite_binary_header);
   buf = mrb_malloc(mrb, buf_size);
   fread(buf, sizeof(struct rite_binary_header), 1, fp);
-  result = read_rite_binary_header(buf, &bin_size);
+  result = read_rite_binary_header(buf, &bin_size, &crc);
+  mrb_free(mrb, buf);
   if(result != MRB_DUMP_OK) {
     return result;
   }
 
+  /* verify CRC */
+  fpos = ftell(fp);
+  buf = mrb_malloc(mrb, block_size);
+  fseek(fp, offset_crc_body(), SEEK_SET);
+  while(nbytes = fread(buf, 1, block_size, fp)) {
+    crcwk = calc_crc_16_ccitt_block(buf, nbytes, crcwk);
+  }
+  mrb_free(mrb, buf);
+  if(calc_crc_16_ccitt_finish(crcwk) != crc) {
+    return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+  fseek(fp, fpos + section_size, SEEK_SET);
+
+  // read sections
   do {
     fpos = ftell(fp);
     fread(&section_header, sizeof(struct rite_section_header), 1, fp);
@@ -369,7 +407,6 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     fseek(fp, fpos + section_size, SEEK_SET);
   } while(memcmp(section_header.section_identify, RITE_BINARY_EOF, sizeof(section_header.section_identify)) != 0);
 
-  mrb_free(mrb, buf);
   return total_nirep;
 }
 

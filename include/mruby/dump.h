@@ -87,8 +87,8 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 struct rite_binary_header {
   unsigned char binary_identify[4]; // Rite Binary Identify
   unsigned char binary_version[4];  // Rite Binary Format Version
+  unsigned char binary_crc[2];      // Rite Binary CRC
   unsigned char binary_size[4];     // Rite Binary Size
-  unsigned char binary_crc[4];      // Rite Binary CRC
 };
 
 // Rite section header

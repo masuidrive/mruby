@@ -29,7 +29,7 @@ read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
   int i, ret = MRB_DUMP_OK;
   char *buf;
   const unsigned char *src = bin;
-  uint16_t tt, pool_data_len, snl, offset, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
+  uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
   int plen;
@@ -56,11 +56,6 @@ read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
   // number of register variable
   irep->nregs = bin_to_uint16(src);         
   src += sizeof(uint16_t);
-
-  // offset of isec block
-  offset = bin_to_uint16(src);
-  src += sizeof(uint16_t);
-  src += offset;
 
   // Binary Data Section
   // ISEQ BLOCK

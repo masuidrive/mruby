@@ -89,7 +89,7 @@ get_irep_header_size(mrb_state *mrb, struct binop *binop)
 
   size += binop->uint8_size; // identifier
   size += binop->uint32_size * 1;
-  size += binop->uint16_size * 3;
+  size += binop->uint16_size * 2;
 
   return size;
 }
@@ -100,10 +100,9 @@ write_irep_header(mrb_state *mrb, struct binop *binop, mrb_irep *irep, unsigned 
   unsigned char *cur = buf;
 
   cur += binop->uint8_to_bin(RITE_IREP_IDENTIFIER, cur); /* record identifier */
-  cur += binop->uint32_to_bin(get_irep_record_size(mrb, binop, irep), cur);  /* number of register variable */
+  cur += binop->uint32_to_bin(get_irep_record_size(mrb, binop, irep), cur);  /* record size */
   cur += binop->uint16_to_bin((uint16_t)irep->nlocals, cur);  /* number of local variable */
   cur += binop->uint16_to_bin((uint16_t)irep->nregs, cur);  /* number of register variable */
-  cur += binop->uint16_to_bin(0, cur); /* offset of isec block */
 
   return (cur - buf);
 }

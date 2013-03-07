@@ -20,7 +20,6 @@ offset_crc_body()
   return ((void*)header.binary_crc - (void*)&header) + sizeof(header.binary_crc);
 }
 
-
 static int
 read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
 {
@@ -283,7 +282,6 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 }
 
 #ifdef ENABLE_STDIO
-
 
 static int
 read_rite_section_irep_file(mrb_state *mrb, FILE *fp)

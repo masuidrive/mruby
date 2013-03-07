@@ -19,9 +19,6 @@ get_irep_record_size(mrb_state *mrb, mrb_irep *irep);
 uint16_t
 calc_crc_16_ccitt(const unsigned char*, uint32_t);
 
-
-#ifdef ENABLE_STDIO
-
 static uint32_t
 get_irep_header_size(mrb_state *mrb)
 {
@@ -394,6 +391,8 @@ error_exit:
   return result;
 }
 
+
+#ifdef ENABLE_STDIO
 
 int
 mrb_dump_irep_binary(mrb_state *mrb, int start_index, FILE* fp)

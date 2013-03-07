@@ -11,9 +11,7 @@
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
-uint16_t calc_crc_16_ccitt(const unsigned char*, uint32_t);
-uint32_t calc_crc_16_ccitt_block(const unsigned char *src, uint32_t nbytes, uint32_t crcwk);
-uint16_t calc_crc_16_ccitt_finish(uint32_t crcwk);
+uint32_t calc_crc_16_ccitt(const unsigned char *src, uint32_t nbytes, uint16_t crcwk);
 
 static size_t
 offset_crc_body()
@@ -41,10 +39,6 @@ read_rite_irep_record(mrb_state *mrb, const unsigned char *bin, uint32_t *len)
     ret = MRB_DUMP_GENERAL_FAILURE;
     goto error_exit;
   }
-
-  //Header Section
-  if (*src++ != RITE_IREP_IDENTIFIER)
-    return MRB_DUMP_INVALID_IREP;
 
   // skip record size
   src += sizeof(uint32_t);
@@ -174,7 +168,6 @@ read_rite_section_irep(mrb_state *mrb, const unsigned char *bin)
   int n, i, result = MRB_DUMP_OK;
   uint32_t len, sirep;
   uint16_t nirep;
-
   const struct rite_section_irep_header *header;
 
   header = (const struct rite_section_irep_header*)bin;
@@ -216,7 +209,6 @@ static int
 read_rite_binary_header(const unsigned char *bin, uint32_t *bin_size, uint16_t *crc)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
-  size_t n;
 
   if(memcmp(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
@@ -250,7 +242,7 @@ mrb_read_irep(mrb_state *mrb, const unsigned char *bin)
   }
 
   n = offset_crc_body();
-  if(crc != calc_crc_16_ccitt(bin + n, bin_size - n)) {
+  if(crc != calc_crc_16_ccitt(bin + n, bin_size - n, 0)) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
@@ -284,7 +276,6 @@ mrb_load_irep(mrb_state *mrb, const unsigned char *bin)
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
-printf("ret=%d\n", n);
     irep_error(mrb, "irep load error");
     return mrb_nil_value();
   }
@@ -315,11 +306,9 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
     fread(buf, record_header_size, 1, fp);
-    if(buf[0] == RITE_IREP_IDENTIFIER) {
-      buf_size = bin_to_uint32(&buf[1]);
-      buf = mrb_realloc(mrb, buf, buf_size);
-      fread(&buf[record_header_size], buf_size - record_header_size, 1, fp);
-    }
+    buf_size = bin_to_uint32(&buf[0]);
+    buf = mrb_realloc(mrb, buf, buf_size);
+    fread(&buf[record_header_size], buf_size - record_header_size, 1, fp);
     result = read_rite_irep_record(mrb, buf, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
@@ -352,8 +341,8 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   int total_nirep = 0, result = MRB_DUMP_OK;
   unsigned char *buf;
-  uint16_t crc;
-  uint32_t bin_size = 0, buf_size = 0, section_size = 0, crcwk = 0;
+  uint16_t crc, crcwk = 0;
+  uint32_t bin_size = 0, buf_size = 0, section_size = 0;
   size_t nbytes;
   struct rite_section_header section_header;
   long fpos;
@@ -377,10 +366,10 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   buf = mrb_malloc(mrb, block_size);
   fseek(fp, offset_crc_body(), SEEK_SET);
   while(nbytes = fread(buf, 1, block_size, fp)) {
-    crcwk = calc_crc_16_ccitt_block(buf, nbytes, crcwk);
+    crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
   }
   mrb_free(mrb, buf);
-  if(calc_crc_16_ccitt_finish(crcwk) != crc) {
+  if(crcwk != crc) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
   fseek(fp, fpos + section_size, SEEK_SET);

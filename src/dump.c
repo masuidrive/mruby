@@ -16,9 +16,6 @@
 static size_t
 get_irep_record_size(mrb_state *mrb, mrb_irep *irep);
 
-uint16_t
-calc_crc_16_ccitt(const unsigned char*, uint32_t);
-
 static uint32_t
 get_irep_header_size(mrb_state *mrb)
 {

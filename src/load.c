@@ -11,7 +11,6 @@
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
-uint32_t calc_crc_16_ccitt(const unsigned char *src, uint32_t nbytes, uint16_t crcwk);
 
 static size_t
 offset_crc_body()

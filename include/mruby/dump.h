@@ -28,11 +28,6 @@ int mrb_read_irep(mrb_state*, const unsigned char*);
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #endif
 
-/* dump type */
-#define DUMP_TYPE_CODE 0
-#define DUMP_TYPE_BIN  1
-#define DUMP_TYPE_HEX  2
-
 /* dump/load error code
  *
  * NOTE: MRB_DUMP_GENERAL_FAILURE is caused by
@@ -47,23 +42,8 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #define MRB_DUMP_INVALID_IREP         -6
 #define MRB_DUMP_INVALID_ARGUMENT     -7
 
-/* size of long/int/short value on dump/load */
-#define MRB_DUMP_SIZE_OF_LONG         4
-#define MRB_DUMP_SIZE_OF_INT          4
-#define MRB_DUMP_SIZE_OF_SHORT        2
-#define MRB_DUMP_SIZE_OF_CHAR         1
-
 /* null symbol length */
 #define MRB_DUMP_NULL_SYM_LEN         0xFFFF
-
-/* Use HEX format string */
-#define RITE_FILE_IS_HEX
-
-#ifdef RITE_FILE_IS_HEX
-#define RITE_FILE_HEX_SIZE            2
-#else
-#define RITE_FILE_HEX_SIZE            1
-#endif
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENFIFIER        "RITE"
@@ -75,12 +55,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
-#define RITE_SECTION_IREP_LITTLE_ENDIAN 'L'
-#define RITE_SECTION_IREP_BIG_ENDIAN  'B'
 
-
-/* irep header */
-#define RITE_IREP_IDENTIFIER          'S'
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
 // Rite binary header
@@ -160,6 +135,10 @@ bin_to_uint8(const unsigned char *bin)
 {
   return (uint8_t)bin[0];
 }
+
+/* crc.c */
+uint32_t
+calc_crc_16_ccitt(const unsigned char *src, uint32_t nbytes, uint16_t crcwk);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

@@ -68,10 +68,10 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 /* Rite Binary File header */
 #define RITE_BINARY_IDENFIFIER        "RITE"
 #define RITE_BINARY_FORMAT_VER        "0000"
-
-#define RITE_VM_VER                   "0000"
 #define RITE_COMPILER_NAME            "MATZ"
 #define RITE_COMPILER_VERSION         "0000"
+
+#define RITE_VM_VER                   "0000"
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
@@ -89,6 +89,8 @@ struct rite_binary_header {
   unsigned char binary_version[4];  // Rite Binary Format Version
   unsigned char binary_crc[2];      // Rite Binary CRC
   unsigned char binary_size[4];     // Rite Binary Size
+  unsigned char compiler_name[4];   // Rite Compiler name
+  unsigned char compiler_version[4];
 };
 
 // Rite section header
@@ -104,28 +106,12 @@ struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   unsigned char rite_version[4];    // Rite Instruction Specification Version
-  unsigned char compiler_name[4];   // Rite Compiler name
-  unsigned char compiler_version[4];
-  unsigned char endianness;         // 
   unsigned char nirep[2];           // Number of ireps
   unsigned char sirep[2];           // Start index  
 };
 
 struct rite_binary_footer {
   RITE_SECTION_HEADER;
-};
-
-struct binop {
-  unsigned char endianness;
-  size_t uint8_size;
-  size_t uint16_size;
-  size_t uint32_size;
-  int (*uint8_to_bin)(uint8_t s, unsigned char *bin);
-  int (*uint16_to_bin)(uint16_t s, unsigned char *bin);
-  int (*uint32_to_bin)(uint32_t s, unsigned char *bin);
-  uint8_t (*bin_to_uint8)(const unsigned char *bin);
-  uint16_t (*bin_to_uint16)(const unsigned char *bin);
-  uint32_t (*bin_to_uint32)(const unsigned char *bin);
 };
 
 static inline int

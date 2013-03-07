@@ -363,7 +363,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   fpos = ftell(fp);
   buf = mrb_malloc(mrb, block_size);
   fseek(fp, offset_crc_body(), SEEK_SET);
-  while(nbytes = fread(buf, 1, block_size, fp)) {
+  while((nbytes = fread(buf, 1, block_size, fp)) > 0) {
     crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
   }
   mrb_free(mrb, buf);

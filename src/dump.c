@@ -294,9 +294,6 @@ mrb_write_section_irep_header(mrb_state *mrb, uint32_t section_size, uint16_t ni
   memcpy(header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
   memcpy(header->rite_version, RITE_VM_VER, sizeof(header->rite_version));
-  memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
-  memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
-  header->endianness = RITE_SECTION_IREP_BIG_ENDIAN;
   uint16_to_bin(nirep, header->nirep);
   uint16_to_bin(sirep, header->sirep);
 
@@ -340,6 +337,8 @@ write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, unsigned char* bi
 
   memcpy(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify));
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
+  memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
+  memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
   uint32_to_bin(binary_size, header->binary_size);
   n = (&(header->binary_crc[0]) - bin) + sizeof(uint16_t);
 

@@ -330,16 +330,16 @@ write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, unsigned char* bi
 { 
   struct rite_binary_header *header = (struct rite_binary_header*)bin;
   uint16_t crc;
-  size_t n;
+  size_t offset;
 
   memcpy(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify));
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
   uint32_to_bin(binary_size, header->binary_size);
-  n = (&(header->binary_crc[0]) - bin) + sizeof(uint16_t);
-
-  crc = calc_crc_16_ccitt(bin + n, binary_size - n);
+  
+  offset = (&(header->binary_crc[0]) - bin) + sizeof(uint16_t);
+  crc = calc_crc_16_ccitt(bin + offset, binary_size - offset, 0);
   uint16_to_bin(crc, header->binary_crc);
 
   return MRB_DUMP_OK;

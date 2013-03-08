@@ -1,7 +1,8 @@
 #include "mruby.h"
 #include "mruby/proc.h"
-#include "mruby/dump.h"
 #include "mruby/compile.h"
+#include "mruby/load.h"
+#include "dump.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -21,6 +22,7 @@ struct _args {
   char *ext;
   int check_syntax : 1;
   int verbose      : 1;
+  int debug_info   : 1;
 };
 
 static void
@@ -31,6 +33,7 @@ usage(const char *name)
   "-c           check syntax only",
   "-o<outfile>  place the output into <outfile>",
   "-v           print version number, then trun on verbose mode",
+  "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -96,6 +99,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         break;
       case 'c':
         args->check_syntax = 1;
+        break;
+      case 'g':
+        args->debug_info = 1;
         break;
       case 'v':
         mrb_show_version(mrb);
@@ -166,6 +172,52 @@ cleanup(mrb_state *mrb, struct _args *args)
   mrb_close(mrb);
 }
 
+
+static int
+mrb_dump_irep_binary(mrb_state *mrb, int start_index, int debug_info, FILE* fp)
+{
+  uint8_t *bin = NULL;
+  uint32_t bin_size = 0;
+  int result;
+
+  if (fp == NULL) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  result = mrb_dump_irep(mrb, start_index, debug_info, &bin, &bin_size);
+  if (result == MRB_DUMP_OK) {
+    fwrite(bin, bin_size, 1, fp);
+  }
+
+  mrb_free(mrb, bin);
+  return result;
+}
+
+static int
+mrb_dump_irep_cfunc(mrb_state *mrb, int start_index, int debug_info, FILE *fp, const char *initname)
+{
+  uint8_t *bin = NULL;
+  uint32_t bin_size = 0, bin_idx = 0;
+  int result;
+
+  if (fp == NULL || initname == NULL) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  result = mrb_dump_irep(mrb, start_index, debug_info, &bin, &bin_size);
+  if (result == MRB_DUMP_OK) {
+    fprintf(fp, "const uint8_t %s[] = {", initname);
+    while (bin_idx < bin_size) {
+      if (bin_idx % 16 == 0 ) fputs("\n", fp);
+      fprintf(fp, "0x%02x,", bin[bin_idx++]);
+    }
+    fputs("\n};\n", fp);
+  }
+
+  mrb_free(mrb, bin);
+  return result;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -203,10 +255,10 @@ main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
   if (args.initname) {
-    n = mrb_dump_irep_cfunc(mrb, n, args.wfp, args.initname);
+    n = mrb_dump_irep_cfunc(mrb, n, args.debug_info, args.wfp, args.initname);
   }
   else {
-    n = mrb_dump_irep_binary(mrb, n, args.wfp);
+    n = mrb_dump_irep_binary(mrb, n, args.debug_info, args.wfp);
   }
 
   cleanup(mrb, &args);

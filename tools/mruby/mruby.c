@@ -3,7 +3,7 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/compile.h"
-#include "mruby/dump.h"
+#include "mruby/load.h"
 #include "mruby/variable.h"
 #include <stdio.h>
 #include <string.h>

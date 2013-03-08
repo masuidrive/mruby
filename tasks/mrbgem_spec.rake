@@ -147,7 +147,7 @@ module MRuby
         f.puts %Q[ */]
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[#include "mruby/irep.h"]
-        f.puts %Q[#include "mruby/dump.h"]
+        f.puts %Q[#include "mruby/load.h"]
         f.puts %Q[#include "mruby/string.h"]
         f.puts %Q[#include "mruby/proc.h"]
         f.puts %Q[#include "mruby/variable.h"]

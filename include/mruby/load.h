@@ -1,11 +1,11 @@
 /*
-** mruby/dump.h - mruby binary dumper (Rite binary format)
+** mruby/load.h - mruby binary dumper (Rite binary format)
 **
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef MRUBY_DUMP_H
-#define MRUBY_DUMP_H
+#ifndef MRUBY_LOAD_H
+#define MRUBY_LOAD_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -17,15 +17,15 @@ extern "C" {
 #endif
 #include <stdint.h>
 
+int
+mrb_dump_irep(mrb_state *mrb, int start_index, uint8_t **bin, uint32_t *bin_size);
+
 #ifdef ENABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, int, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, int n, FILE *f, const char *initname);
 int mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 int mrb_read_irep(mrb_state*, const uint8_t*);
 
 #ifdef ENABLE_STDIO
-mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #endif
 
 /* dump/load error code
@@ -144,4 +144,4 @@ calc_crc_16_ccitt(const uint8_t *src, uint32_t nbytes, uint16_t crcwk);
 }  /* extern "C" { */
 #endif
 
-#endif  /* MRUBY_DUMP_H */
+#endif  /* MRUBY_LOAD_H */

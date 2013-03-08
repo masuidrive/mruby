@@ -1,7 +1,7 @@
 #include "mruby.h"
 #include "mruby/proc.h"
-#include "mruby/dump.h"
 #include "mruby/compile.h"
+#include "dump.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -164,6 +164,52 @@ cleanup(mrb_state *mrb, struct _args *args)
   if (args->wfp)
     fclose(args->wfp);
   mrb_close(mrb);
+}
+
+
+static int
+mrb_dump_irep_binary(mrb_state *mrb, int start_index, FILE* fp)
+{
+  uint8_t *bin = NULL;
+  uint32_t bin_size = 0;
+  int result;
+
+  if (fp == NULL) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  result = mrb_dump_irep(mrb, start_index, &bin, &bin_size);
+  if (result == MRB_DUMP_OK) {
+    fwrite(bin, bin_size, 1, fp);
+  }
+
+  mrb_free(mrb, bin);
+  return result;
+}
+
+static int
+mrb_dump_irep_cfunc(mrb_state *mrb, int start_index, FILE *fp, const char *initname)
+{
+  uint8_t *bin = NULL;
+  uint32_t bin_size = 0, bin_idx = 0;
+  int result;
+
+  if (fp == NULL || initname == NULL) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  result = mrb_dump_irep(mrb, start_index, &bin, &bin_size);
+  if (result == MRB_DUMP_OK) {
+    fprintf(fp, "const uint8_t %s[] = {", initname);
+    while (bin_idx < bin_size) {
+      if (bin_idx % 16 == 0 ) fputs("\n", fp);
+      fprintf(fp, "0x%02x,", bin[bin_idx++]);
+    }
+    fputs("\n};\n", fp);
+  }
+
+  mrb_free(mrb, bin);
+  return result;
 }
 
 int

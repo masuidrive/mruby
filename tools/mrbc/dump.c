@@ -5,9 +5,9 @@
 */
 
 #include <string.h>
-#include "mruby/dump.h"
 #include <ctype.h>
 
+#include "dump.h"
 #include "mruby/string.h"
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
@@ -345,7 +345,7 @@ write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, uint8_t* bin)
   return MRB_DUMP_OK;
 }
 
-static int
+int
 mrb_dump_irep(mrb_state *mrb, int start_index, uint8_t **bin, uint32_t *bin_size)
 {
   int result = MRB_DUMP_OK, irep_no, section_irep_size;
@@ -386,53 +386,3 @@ error_exit:
   }
   return result;
 }
-
-
-#ifdef ENABLE_STDIO
-
-int
-mrb_dump_irep_binary(mrb_state *mrb, int start_index, FILE* fp)
-{
-  uint8_t *bin = NULL;
-  uint32_t bin_size = 0;
-  int result;
-
-  if (fp == NULL) {
-    return MRB_DUMP_INVALID_ARGUMENT;
-  }
-
-  result = mrb_dump_irep(mrb, start_index, &bin, &bin_size);
-  if (result == MRB_DUMP_OK) {
-    fwrite(bin, bin_size, 1, fp);
-  }
-
-  mrb_free(mrb, bin);
-  return result;
-}
-
-int
-mrb_dump_irep_cfunc(mrb_state *mrb, int start_index, FILE *fp, const char *initname)
-{
-  uint8_t *bin = NULL;
-  uint32_t bin_size = 0, bin_idx = 0;
-  int result;
-
-  if (fp == NULL || initname == NULL) {
-    return MRB_DUMP_INVALID_ARGUMENT;
-  }
-
-  result = mrb_dump_irep(mrb, start_index, &bin, &bin_size);
-  if (result == MRB_DUMP_OK) {
-    fprintf(fp, "const uint8_t %s[] = {", initname);
-    while (bin_idx < bin_size) {
-      if (bin_idx % 16 == 0 ) fputs("\n", fp);
-      fprintf(fp, "0x%02x,", bin[bin_idx++]);
-    }
-    fputs("\n};\n", fp);
-  }
-
-  mrb_free(mrb, bin);
-  return result;
-}
-
-#endif /* ENABLE_STDIO */

@@ -1,11 +1,11 @@
 /*
-** mruby/dump.h - mruby binary dumper (mrbc binary format)
+** mruby/load.h - mruby binary dumper (Rite binary format)
 **
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef MRUBY_DUMP_H
-#define MRUBY_DUMP_H
+#ifndef MRUBY_LOAD_H
+#define MRUBY_LOAD_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -14,14 +14,11 @@ extern "C" {
 #include "mruby.h"
 
 #ifdef ENABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, size_t, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, FILE *f, const char *initname);
-int32_t mrb_read_irep_file(mrb_state*, FILE*);
+int mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 int mrb_read_irep(mrb_state*, const uint8_t*);
 
 #ifdef ENABLE_STDIO
-mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #endif
 
 /* dump/load error code
@@ -51,6 +48,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
+#define RITE_SECTION_DEBUG_IDENTIFIER "DBUG"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
@@ -77,6 +75,13 @@ struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   uint8_t rite_version[4];    // Rite Instruction Specification Version
+  uint8_t nirep[2];           // Number of ireps
+  uint8_t sirep[2];           // Start index  
+};
+
+struct rite_section_debug_header {
+  RITE_SECTION_HEADER;
+
   uint8_t nirep[2];           // Number of ireps
   uint8_t sirep[2];           // Start index  
 };
@@ -140,4 +145,4 @@ calc_crc_16_ccitt(const uint8_t *src, uint32_t nbytes, uint16_t crcwk);
 }  /* extern "C" { */
 #endif
 
-#endif  /* MRUBY_DUMP_H */
+#endif  /* MRUBY_LOAD_H */

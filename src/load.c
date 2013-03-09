@@ -217,51 +217,44 @@ error_exit:
 static int
 read_rite_debug_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint32_t *len)
 {
-  return 0;
-/*
   int ret;
-  size_t i;
   char *char_buf;
   const uint8_t *src = bin;
   uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
   size_t plen;
-  int ai = mrb_gc_arena_save(mrb);
-  mrb_irep *irep = mrb_add_irep(mrb);
 
-  char_buf = (char *)mrb_malloc(mrb, buf_size);
-  if (char_buf == NULL) {
+  size_t i, fname_len, nlines, niseq;
+  char *fname;
+  unsigned short *lines;
+
+  bin += sizeof(uint32_t); // record size
+  fname_len = bin_to_uint16(bin);
+  bin += sizeof(uint16_t);
+  fname = (char *)mrb_malloc(mrb, fname_len + 1);
+  if (fname == NULL) {
     ret = MRB_DUMP_GENERAL_FAILURE;
     goto error_exit;
   }
+  memcpy(fname, bin, fname_len);
+  fname[fname_len] = '\0';
+  bin += fname_len;
 
-  // skip record size
-  src += sizeof(uint32_t);
+  niseq = bin_to_uint32(bin);
+  bin += sizeof(uint32_t); // niseq
 
-  // number of local variable
-  irep->nlocals = bin_to_uint16(src);
-  src += sizeof(uint16_t);
+  lines = (unsigned short *)mrb_malloc(mrb, niseq * sizeof(unsigned short));
+  for (i = 0; i < niseq; i++) {
+    lines[i] = bin_to_uint16(bin);
+    bin += sizeof(unsigned short); // niseq
+  }
 
-  // number of register variable
-  irep->nregs = bin_to_uint16(src);         
-  src += sizeof(uint16_t);
+  mrb->irep[irepno]->filename = fname;
+  mrb->irep[irepno]->lines = lines;
 
-  // Binary Data Section
-  // ISEQ BLOCK
-  irep->ilen = bin_to_uint32(src);
-  src += sizeof(uint32_t);
-  if (irep->ilen > 0) {
-    irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-    if (irep->iseq == NULL) {
-      ret = MRB_DUMP_GENERAL_FAILURE;
-      goto error_exit;
-    }
-    for (i = 0; i < irep->ilen; i++) {
-      irep->iseq[i] = bin_to_uint32(src);     //iseq
-      src += sizeof(uint32_t);
-    }
-  }*/
+error_exit:
+  return MRB_DUMP_OK;
 }
 
 static int
@@ -357,7 +350,6 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
       if(result < MRB_DUMP_OK) {
         return result;
       }
-      total_nirep += result;
     }
     bin += bin_to_uint32(section_header->section_size);
   } while(memcmp(section_header->section_identify, RITE_BINARY_EOF, sizeof(section_header->section_identify)) != 0);
@@ -465,8 +457,9 @@ read_rite_section_debug_file(mrb_state *mrb, FILE *fp, size_t sirep)
     fread(buf, record_header_size, 1, fp);
     buf_size = bin_to_uint32(&buf[0]);
     buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
+
     fread(&buf[record_header_size], buf_size - record_header_size, 1, fp);
-    result = read_rite_irep_record(mrb, buf, &len);
+    result = read_rite_debug_record(mrb, buf, i, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
   }
@@ -550,11 +543,11 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
       total_nirep += result;
     }
     else if(memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
+      fseek(fp, fpos, SEEK_SET);
       result = read_rite_section_debug_file(mrb, fp, sirep);
       if(result < MRB_DUMP_OK) {
         return result;
       }
-      total_nirep += result;
     }
 
     fseek(fp, fpos + section_size, SEEK_SET);
